@@ -1,0 +1,379 @@
+<!-- Views/MainWindow.axaml -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:System_Resource_Manager.ViewModels"
+        xmlns:models="using:System_Resource_Manager.Models"
+        xmlns:svc="using:System_Resource_Manager.Services"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="650"
+        x:Class="System_Resource_Manager.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="System Resource Manager"
+        Width="1100" Height="700" MinWidth="800" MinHeight="500"
+        Background="#16171D" Foreground="#E6E8F0">
+
+    <Design.DataContext>
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#1F2029"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="Margin" Value="0,0,12,12"/>
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#8A8FA3"/>
+        </Style>
+        <Style Selector="TextBlock.big">
+            <Setter Property="FontSize" Value="32"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.nav">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Resources>
+                <SolidColorBrush x:Key="ButtonBackground" Color="Transparent"/>
+                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#23252F"/>
+                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#2B2E40"/>
+                <SolidColorBrush x:Key="ButtonForeground" Color="#8A8FA3"/>
+                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#E6E8F0"/>
+                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#E6E8F0"/>
+                <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
+            </Style.Resources>
+        </Style>
+
+        <Style Selector="Button.nav.active">
+            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+            <Style.Resources>
+                <SolidColorBrush x:Key="ButtonBackground" Color="#2B2E40"/>
+                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#2B2E40"/>
+                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#2B2E40"/>
+                <SolidColorBrush x:Key="ButtonForeground" Color="#7AA2F7"/>
+                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#7AA2F7"/>
+                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#7AA2F7"/>
+                <SolidColorBrush x:Key="ButtonBorderBrush" Color="#7AA2F7"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#7AA2F7"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#7AA2F7"/>
+            </Style.Resources>
+        </Style>
+
+        <Style Selector="Path.icon">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="StrokeThickness" Value="2"/>
+            <Setter Property="StrokeLineCap" Value="Round"/>
+            <Setter Property="StrokeJoin" Value="Round"/>
+        </Style>
+        <Style Selector="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="ProgressBar.mini">
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="Height" Value="6"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="220,*">
+
+        <!-- SIDEBAR -->
+        <Border Grid.Column="0" Background="#1B1C24" BorderBrush="#2A2C38" BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto,*,Auto" Margin="14">
+
+                <!-- brand -->
+                <StackPanel Grid.Row="0" Margin="6,6,0,24" Spacing="2">
+                    <TextBlock Text="Fedora Manager" FontSize="18" FontWeight="Bold" Foreground="#7AA2F7"/>
+                    <TextBlock Classes="label" Text="System Resource Manager"/>
+                </StackPanel>
+
+                <!-- nav -->
+                <StackPanel Grid.Row="1" Spacing="4">
+                    <TextBlock Classes="label" Text="MONITOR" Margin="12,0,0,6"/>
+
+                    <Button Classes="nav" Classes.active="{Binding IsDashboardVisible}"
+                            Command="{Binding ShowDashboardCommand}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Path Classes="icon"
+                                  Stroke="{Binding $parent[ContentPresenter].Foreground}"
+                                  Data="M3,3 H10 V10 H3 Z M14,3 H21 V10 H14 Z M3,14 H10 V21 H3 Z M14,14 H21 V21 H14 Z"/>
+                            <TextBlock Grid.Column="1" Text="Dashboard" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="nav" Classes.active="{Binding IsProcessesVisible}"
+                            Command="{Binding ShowProcessesCommand}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Path Classes="icon"
+                                  Stroke="{Binding $parent[ContentPresenter].Foreground}"
+                                  Data="M8,6 H21 M8,12 H21 M8,18 H21 M3,6 H3.01 M3,12 H3.01 M3,18 H3.01"/>
+                            <TextBlock Grid.Column="1" Text="Processes" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="nav" Classes.active="{Binding IsFilesVisible}"
+                            Command="{Binding ShowFilesCommand}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Path Classes="icon"
+                                  Stroke="{Binding $parent[ContentPresenter].Foreground}"
+                                  Data="M3,7 V19 H21 V9 H11 L9,7 Z"/>
+                            <TextBlock Grid.Column="1" Text="Files" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Button>
+                </StackPanel>
+
+                <!-- footer: live status -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="12,0,0,4">
+                    <Ellipse Width="8" Height="8" Fill="#4EC9B0" VerticalAlignment="Center"/>
+                    <TextBlock Classes="label" Text="{Binding Uptime, StringFormat='Up {0}'}"/>
+                </StackPanel>
+
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1" Margin="24,20">
+
+            <!-- DASHBOARD PAGE -->
+
+            <ScrollViewer
+                IsVisible="{Binding IsDashboardVisible}"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled">
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Dashboard" FontSize="24" FontWeight="Bold" Margin="0,0,0,16"/>
+
+                    <Grid ColumnDefinitions="*,*,*">
+                        <Border Grid.Column="0" Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="label" Text="CPU"/>
+                                <TextBlock Classes="big" Text="{Binding CpuPercent, StringFormat='{}{0:F1}%'}" Foreground="#4EC9B0"/>
+                                <ProgressBar Value="{Binding CpuPercent}" Minimum="0" Maximum="100"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="label" Text="MEMORY"/>
+                                <TextBlock Classes="big" Text="{Binding MemoryPercent, StringFormat='{}{0:F1}%'}" Foreground="#CE9178"/>
+                                <ProgressBar Value="{Binding MemoryPercent}" Minimum="0" Maximum="100"/>
+                                <TextBlock Classes="label" Text="{Binding MemorySummary}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="label" Text="SWAP"/>
+                                <TextBlock Classes="big" Text="{Binding SwapPercent, StringFormat='{}{0:F1}%'}" Foreground="#E0AF68"/>
+                                <ProgressBar Value="{Binding SwapPercent}" Minimum="0" Maximum="100"/>
+                                <TextBlock Classes="label" Text="{Binding SwapSummary}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,*,*">
+                        <Border Grid.Column="0" Classes="card">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="label" Text="UPTIME"/>
+                                <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding Uptime}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Classes="card">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="label" Text="LOAD AVG (1 / 5 / 15 min)"/>
+                                <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding LoadAverage}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Classes="card">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="label" Text="PROCESSES"/>
+                                <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding ProcessCount}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- RESOURCE HISTORY CHARTS -->
+                    <Grid ColumnDefinitions="*,*"
+                          Margin="0,8,0,8">
+
+                        <Border Grid.Column="0" Classes="card">
+                            <StackPanel Spacing="12">
+                                <TextBlock Classes="label"
+                                           Text="CPU USAGE HISTORY"/>
+
+                                <lvc:CartesianChart
+                                    Series="{Binding CpuSeries}"
+                                    XAxes="{Binding CpuXAxes}"
+                                    YAxes="{Binding CpuYAxes}"
+                                    Height="220"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Classes="card">
+                            <StackPanel Spacing="12">
+                                <TextBlock Classes="label"
+                                           Text="MEMORY USAGE HISTORY"/>
+
+                                <lvc:CartesianChart
+                                    Series="{Binding MemorySeries}"
+                                    XAxes="{Binding MemoryXAxes}"
+                                    YAxes="{Binding MemoryYAxes}"
+                                    Height="220"/>
+                            </StackPanel>
+                        </Border>
+
+                    </Grid>
+
+                    <TextBlock Text="Top by CPU" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,8"/>
+                    <Border Classes="card" Margin="0,0,12,0">
+                        <ItemsControl ItemsSource="{Binding TopProcesses}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:ProcessItem">
+                                    <Grid ColumnDefinitions="*,90,100" Margin="0,4">
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding CpuPercent, StringFormat='{}{0:F1}%'}" Foreground="#4EC9B0"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding MemoryMb, StringFormat='{}{0:F0} MB'}" Foreground="#CE9178"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- PROCESSES PAGE -->
+            <Grid IsVisible="{Binding IsProcessesVisible}" RowDefinitions="Auto,Auto,Auto,*,Auto">
+                <TextBlock Grid.Row="0"
+                           Text="{Binding ProcessListSummary}"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Margin="0,0,0,12"/>
+                <TextBox Grid.Row="1"
+                         Text="{Binding SearchText}"
+                         PlaceholderText="Search by name or PID…"
+                         Margin="0,0,0,12"/>
+
+                <Grid Grid.Row="2" ColumnDefinitions="90,*,200,90" Margin="12,0,12,6">
+                    <Button Grid.Column="0"
+                            Content="{Binding PidSortIndicator, StringFormat='PID{0}'}"
+                            Command="{Binding SortByPidCommand}"/>
+
+                    <TextBlock Classes="label"
+                               Grid.Column="1"
+                               Text="NAME"
+                               VerticalAlignment="Center"/>
+
+                    <Button Grid.Column="2"
+                            Content="{Binding CpuSortIndicator, StringFormat='CPU{0}'}"
+                            Command="{Binding SortByCpuCommand}"/>
+
+                    <Button Grid.Column="3"
+                            Content="{Binding MemorySortIndicator, StringFormat='MEMORY{0}'}"
+                            Command="{Binding SortByMemoryCommand}"/>
+                </Grid>
+
+                <ListBox Grid.Row="3"
+                         Background="#1F2029"
+                         CornerRadius="10"
+                         ItemsSource="{Binding Processes}"
+                         SelectedItem="{Binding SelectedProcess}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:ProcessItem">
+                            <Grid ColumnDefinitions="90,*,200,90">
+                                <TextBlock Grid.Column="0" Text="{Binding ProcessId}" Foreground="#8A8FA3"/>
+
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold"/>
+
+                                <!-- CPU cell: bar fills the space, percent gets a fixed slot -->
+                                <Grid Grid.Column="2" ColumnDefinitions="*,56" ColumnSpacing="10"
+                                      Margin="0,0,20,0" VerticalAlignment="Center">
+                                    <ProgressBar Classes="mini" Grid.Column="0" Value="{Binding CpuPercent}"
+                                                 Minimum="0" Maximum="100" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding CpuPercent, StringFormat='{}{0:F1}%'}"
+                                               Foreground="#4EC9B0"
+                                               TextAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <TextBlock Grid.Column="3"
+                                           Text="{Binding MemoryMb, StringFormat='{}{0:F0} MB'}"
+                                           Foreground="#CE9178"
+                                           TextAlignment="Right"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+                    <Button Content="Terminate (SIGTERM)" Command="{Binding TerminateCommand}"/>
+                    <Button Content="Force Kill (SIGKILL)" Command="{Binding ForceKillCommand}"
+                            Background="#A1260D" Foreground="White"/>
+                    <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Foreground="#8A8FA3"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- FILES PAGE -->
+            <Grid IsVisible="{Binding IsFilesVisible}">
+                <Grid DataContext="{Binding Files}" x:DataType="vm:FilesViewModel"
+                      RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+                    <TextBlock Grid.Row="0" Text="Files" FontSize="24" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+                        <Button Grid.Column="0" Content="↑ Up" Command="{Binding UpCommand}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CurrentDir}" Classes="label"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                        <Button Grid.Column="2" Content="Open" Command="{Binding OpenCommand}"/>
+                        <Button Grid.Column="3" Content="Refresh" Command="{Binding RefreshCommand}"/>
+                    </Grid>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+                        <TextBox Grid.Column="0" Text="{Binding NewName}" PlaceholderText="New file or folder name…"/>
+                        <Button Grid.Column="1" Content="New file" Command="{Binding CreateFileCommand}"/>
+                        <Button Grid.Column="2" Content="New folder" Command="{Binding CreateFolderCommand}"/>
+                    </Grid>
+
+                    <ListBox Grid.Row="3" Background="#1F2029" CornerRadius="10"
+                             ItemsSource="{Binding Entries}" SelectedItem="{Binding Selected}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="svc:FileEntry">
+                                <Grid ColumnDefinitions="*,100">
+                                    <TextBlock Grid.Column="0" Text="{Binding DisplayName}" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SizeText}" Foreground="#8A8FA3"
+                                               TextAlignment="Right"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+                        <Button Content="Move to Trash" Command="{Binding TrashCommand}"
+                                IsVisible="{Binding !IsConfirmingDelete}"/>
+                        <Button Content="Delete permanently…" Command="{Binding AskDeleteCommand}"
+                                IsVisible="{Binding !IsConfirmingDelete}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsConfirmingDelete}">
+                            <TextBlock Text="{Binding Selected.Name, StringFormat='Permanently delete {0}?'}"
+                                       VerticalAlignment="Center" Foreground="#E0AF68"/>
+                            <Button Content="Yes, delete" Command="{Binding ConfirmDeleteCommand}"
+                                    Background="#A1260D" Foreground="White"/>
+                            <Button Content="Cancel" Command="{Binding CancelDeleteCommand}"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Foreground="#8A8FA3"/>
+                    </StackPanel>
+
+                </Grid>
+            </Grid>
+
+        </Grid>
+    </Grid>
+</Window>
