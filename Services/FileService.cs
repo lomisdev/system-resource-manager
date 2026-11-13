@@ -25,13 +25,42 @@ public sealed class FileService
 
     public FileService(string root, ITrasher? trasher = null)
     {
-        Root = Path.GetFullPath(root);
+        Root = Canonicalize(Path.GetFullPath(root));   // resolve Root with the same rules
         _trasher = trasher;
+    }
+
+    // Walk the path one component at a time, replacing any symlink with where it really points.
+    private static string Canonicalize(string fullPath)
+    {
+        var current = "/";
+        foreach (var part in fullPath.Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = Path.Combine(current, part);
+            var info = new FileInfo(current);
+            if (info.LinkTarget is not null)              // null when not a link OR not existing
+                current = info.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? current;
+        }
+        return current;
+    }
+
+    // followLeaf: true  -> we ENTER this path (list it, create inside it)
+    // followLeaf: false -> we ACT ON this path itself (delete/trash: a link is removed, not its target)
+    private string EnsureInsideRoot(string path, bool followLeaf)
+    {
+        var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        var real = followLeaf || Path.GetDirectoryName(full) is not { } parent
+            ? Canonicalize(full)
+            : Path.Combine(Canonicalize(parent), Path.GetFileName(full));
+
+        var rel = Path.GetRelativePath(Root, real);
+        if (rel == ".." || rel.StartsWith("../") || Path.IsPathRooted(rel))
+            throw new UnauthorizedAccessException("Path is outside the allowed folder.");
+        return real;
     }
 
     public void MoveToTrash(string path)
     {
-        var full = EnsureInsideRoot(path);   // same sandbox check as Delete
+        var full = EnsureInsideRoot(path, followLeaf: false);  // act on the link itself, not its target
         if (full == Root) throw new InvalidOperationException("Refusing to trash the root folder.");
         if (_trasher is null) throw new InvalidOperationException("No trash backend configured.");
         _trasher.Trash(full);
@@ -39,7 +68,7 @@ public sealed class FileService
 
     public IReadOnlyList<FileEntry> List(string dir)
     {
-        var full = EnsureInsideRoot(dir);
+        var full = EnsureInsideRoot(dir, followLeaf: true);
         return new DirectoryInfo(full).EnumerateFileSystemInfos()
             .Select(i => i is FileInfo f
                 ? new FileEntry(f.Name, f.FullName, false, f.Length, f.LastWriteTime)
@@ -66,7 +95,7 @@ public sealed class FileService
 
     public void Delete(string path)
     {
-        var full = EnsureInsideRoot(path);
+        var full = EnsureInsideRoot(path, followLeaf: false);
         if (full == Root) throw new InvalidOperationException("Refusing to delete the root folder.");
 
         if (Directory.Exists(full)) Directory.Delete(full, recursive: true);
@@ -78,16 +107,9 @@ public sealed class FileService
         if (string.IsNullOrWhiteSpace(name) || name is "." or ".."
             || name.Contains('/') || name.Contains('\0'))
             throw new ArgumentException("Invalid name.");
-        return EnsureInsideRoot(Path.Combine(EnsureInsideRoot(dir), name));
+
+        var parent = EnsureInsideRoot(dir, followLeaf: true);                 // folder we create in: fully resolved
+        return EnsureInsideRoot(Path.Combine(parent, name), followLeaf: false); // the new name doesn't exist yet
     }
 
-    // Normalise (collapses ".." segments), then require the result to be Root or below it.
-    private string EnsureInsideRoot(string path)
-    {
-        var full = Path.GetFullPath(path);
-        var rel = Path.GetRelativePath(Root, full);
-        if (rel == ".." || rel.StartsWith("../") || Path.IsPathRooted(rel))
-            throw new UnauthorizedAccessException("Path is outside the allowed folder.");
-        return full;
-    }
 }

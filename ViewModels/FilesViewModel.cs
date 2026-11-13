@@ -5,6 +5,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System_Resource_Manager.Services;
+using System.Threading.Tasks;
 
 namespace System_Resource_Manager.ViewModels;
 
@@ -29,6 +30,10 @@ public partial class FilesViewModel : ViewModelBase
         CurrentDir = _fs.Root;
         Refresh();
     }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(TrashCommand), nameof(AskDeleteCommand))]
+    private bool _isBusy;
 
     partial void OnSelectedChanged(FileEntry? value) => IsConfirmingDelete = false;
 
@@ -60,17 +65,17 @@ public partial class FilesViewModel : ViewModelBase
         Refresh();
     }
 
-    [RelayCommand] private void CreateFile() => Run(() => _fs.CreateFile(CurrentDir, NewName), $"Created file '{NewName}'");
-    [RelayCommand] private void CreateFolder() => Run(() => _fs.CreateFolder(CurrentDir, NewName), $"Created folder '{NewName}'");
+    [RelayCommand] private Task CreateFileAsync() => RunAsync(() => _fs.CreateFile(CurrentDir, NewName), $"Created file '{NewName}'");
+    [RelayCommand] private Task CreateFolderAsync() => RunAsync(() => _fs.CreateFolder(CurrentDir, NewName), $"Created folder '{NewName}'");
 
-    private bool CanDelete() => Selected is not null;
+    private bool CanDelete() => Selected is not null && !IsBusy;
 
     [RelayCommand(CanExecute = nameof(CanDelete))]
-    private void Trash()
+    private async Task TrashAsync()
     {
         if (Selected is null) return;
         var target = Selected;
-        Run(() => _fs.MoveToTrash(target.FullPath), $"Moved '{target.Name}' to Trash");
+        await RunAsync(() => _fs.MoveToTrash(target.FullPath), $"Moved '{target.Name}' to Trash");
     }
 
     [RelayCommand(CanExecute = nameof(CanDelete))]
@@ -79,22 +84,30 @@ public partial class FilesViewModel : ViewModelBase
     [RelayCommand] private void CancelDelete() => IsConfirmingDelete = false;
 
     [RelayCommand]
-    private void ConfirmDelete()
+    private async Task ConfirmDeleteAsync()
     {
         if (Selected is null) return;
         var target = Selected;
         IsConfirmingDelete = false;
-        Run(() => _fs.Delete(target.FullPath), $"Deleted '{target.Name}'");
+        await RunAsync(() => _fs.Delete(target.FullPath), $"Deleted '{target.Name}'");
     }
 
-    private void Run(Action action, string success)
+    private async Task RunAsync(Action action, string success)
     {
-        try { action(); Status = success; NewName = ""; }
+        IsBusy = true;
+        Status = "Working…";
+        try
+        {
+            await Task.Run(action);          // file work on a worker thread
+            Status = success;                // back on the UI thread here
+            NewName = "";
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
                                       or ArgumentException or InvalidOperationException)
         {
             Status = ex.Message;
         }
+        finally { IsBusy = false; }
         Refresh();
     }
 }

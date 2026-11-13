@@ -12,6 +12,9 @@ using System_Resource_Manager.Models;
 using System_Resource_Manager.Services;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 
 namespace System_Resource_Manager.ViewModels;
 
@@ -356,6 +359,36 @@ public partial class MainViewModel : ViewModelBase
 
     [RelayCommand(CanExecute = nameof(CanSignal))]
     private void ForceKill() => Send(Signals.SIGKILL, "SIGKILL");
+
+    [ObservableProperty] private string _launchText = "";
+
+    [RelayCommand]
+    private void Launch()
+    {
+        if (string.IsNullOrWhiteSpace(LaunchText)) return;
+
+        Process proc;
+        string name;
+        try { (proc, name) = ProcessLauncher.Launch(LaunchText); }
+        catch (Exception ex) when (ex is ArgumentException or IOException or Win32Exception)
+        {
+            Status = ex.Message;
+            return;
+        }
+
+        var pid = proc.Id;
+        Status = $"Started {name} (PID {pid})";
+        LaunchText = "";
+        _ = WatchAsync(proc, name, pid);     // deliberately not awaited
+    }
+
+    private async Task WatchAsync(Process proc, string name, int pid)
+    {
+        await proc.WaitForExitAsync();       // resumes on the UI thread, like your monitor loop
+        if (proc.ExitCode != 0)
+            Status = $"{name} (PID {pid}) exited with code {proc.ExitCode}";
+        proc.Dispose();
+    }
 
     private void Send(int signal, string label)
     {
