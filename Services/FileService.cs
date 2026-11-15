@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace System_Resource_Manager.Services;
 
@@ -16,6 +17,8 @@ public sealed record FileEntry(string Name, string FullPath, bool IsDirectory, l
         _ => $"{SizeBytes / 1048576.0:F1} MB"
     };
 }
+
+public sealed record FileStamp(DateTime ModifiedUtc, long Length);
 
 public sealed class FileService
 {
@@ -101,6 +104,74 @@ public sealed class FileService
         if (Directory.Exists(full)) Directory.Delete(full, recursive: true);
         else File.Delete(full);
     }
+
+    private const long MaxEditableBytes = 1_000_000;
+
+// throwOnInvalidBytes: bad input becomes an error, not a silent U+FFFD that we'd then save back.
+private static readonly UTF8Encoding StrictUtf8 =
+    new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+public (string Text, FileStamp Stamp) ReadText(string path)
+{
+    var full = EnsureInsideRoot(path, followLeaf: true);   // reading THROUGH a link: resolve it fully
+    var info = new FileInfo(full);
+    if (!info.Exists) throw new FileNotFoundException("That is not a file.");
+    if (info.Length > MaxEditableBytes)
+        throw new IOException("File is too large to edit here (limit 1 MB).");
+
+    var stamp = new FileStamp(info.LastWriteTimeUtc, info.Length);   // taken BEFORE reading: if the file
+    var bytes = File.ReadAllBytes(full);                             // changes meanwhile, we get a false
+                                                                     // conflict, never a missed one
+    if (Array.IndexOf(bytes, (byte)0) >= 0)
+        throw new IOException("This looks like a binary file.");
+
+    try { return (StrictUtf8.GetString(bytes), stamp); }
+    catch (DecoderFallbackException)
+    {
+        throw new IOException("File is not valid UTF-8; refusing to open it so it can't be corrupted.");
+    }
+}
+
+public FileStamp WriteText(string path, string text, FileStamp expected)
+{
+    var full = EnsureInsideRoot(path, followLeaf: true);
+
+    var now = new FileInfo(full);
+    if (!now.Exists) throw new FileNotFoundException("The file no longer exists.");
+    if (now.LastWriteTimeUtc != expected.ModifiedUtc || now.Length != expected.Length)
+        throw new IOException("The file changed on disk since you opened it. Reload before saving.");
+
+    var bytes = StrictUtf8.GetBytes(text);
+    if (bytes.Length > MaxEditableBytes)
+        throw new IOException("Text is too large to save here (limit 1 MB).");
+
+    // Temp file in the SAME directory, so the final rename can't cross filesystems.
+    var tmp = Path.Combine(Path.GetDirectoryName(full)!, $".{Path.GetFileName(full)}.{Guid.NewGuid():N}.tmp");
+    var mode = File.GetUnixFileMode(full);
+    try
+    {
+        using (var fs = new FileStream(tmp, new FileStreamOptions
+        {
+            Mode = FileMode.CreateNew,
+            Access = FileAccess.Write,
+            UnixCreateMode = mode            // never more permissive than the original, even briefly
+        }))
+        {
+            fs.Write(bytes);
+            fs.Flush(flushToDisk: true);     // data on disk BEFORE the rename (matters on btrfs/xfs)
+        }
+        File.SetUnixFileMode(tmp, mode);     // creation applies the umask; restore the exact mode
+        File.Move(tmp, full, overwrite: true);   // a rename(2) on one filesystem: old or new, never half
+    }
+    catch
+    {
+        try { File.Delete(tmp); } catch { /* best effort */ }
+        throw;
+    }
+
+    var after = new FileInfo(full);
+    return new FileStamp(after.LastWriteTimeUtc, after.Length);
+}
 
     private string ResolveChild(string dir, string name)
     {

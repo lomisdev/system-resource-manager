@@ -362,6 +362,17 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty] private string _launchText = "";
 
+    [ObservableProperty] private string _memoryLimitMb = "";
+    [ObservableProperty] private string _cpuLimitPercent = "";
+
+    private static int? ParseLimit(string text, string label, int max)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;       // empty = no limit
+        if (!int.TryParse(text, out var v) || v < 1 || v > max)
+            throw new ArgumentException($"{label} must be a whole number from 1 to {max}.");
+        return v;
+    }
+
     [RelayCommand]
     private void Launch()
     {
@@ -369,13 +380,18 @@ public partial class MainViewModel : ViewModelBase
 
         Process proc;
         string name;
-        try { (proc, name) = ProcessLauncher.Launch(LaunchText); }
+        try
+        {
+            var limits = new ResourceLimits(
+                ParseLimit(MemoryLimitMb, "Memory limit (MB)", 1_000_000),
+                ParseLimit(CpuLimitPercent, "CPU limit (%)", Environment.ProcessorCount * 100));
+            (proc, name) = ProcessLauncher.Launch(LaunchText, limits);
+        }
         catch (Exception ex) when (ex is ArgumentException or IOException or Win32Exception)
         {
             Status = ex.Message;
             return;
         }
-
         var pid = proc.Id;
         Status = $"Started {name} (PID {pid})";
         LaunchText = "";

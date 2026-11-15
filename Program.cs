@@ -1,6 +1,10 @@
 ﻿using Avalonia;
 using System;
 
+using System.Runtime.Versioning;
+
+[assembly: SupportedOSPlatform("linux")]
+
 namespace System_Resource_Manager;
 
 sealed class Program

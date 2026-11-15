@@ -1,5 +1,6 @@
 // Services/ProcessLauncher.cs
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -7,23 +8,33 @@ using System.Linq;
 
 namespace System_Resource_Manager.Services;
 
+public sealed record ResourceLimits(int? MemoryMb, int? CpuPercent)
+{
+    public bool Any => MemoryMb is not null || CpuPercent is not null;
+}
+
 public static class ProcessLauncher
 {
-    public static (Process Process, string Program) Launch(string commandLine)
+    public static (Process Process, string Program) Launch(string commandLine, ResourceLimits? limits = null)
     {
         var parts = CommandLine.Split(commandLine);
         if (parts.Count == 0) throw new ArgumentException("Type a command first.");
 
-        var exe = ResolveExecutable(parts[0], Environment.GetEnvironmentVariable("PATH"));
+        var path = Environment.GetEnvironmentVariable("PATH");
+        var exe = ResolveExecutable(parts[0], path);
 
-        // setsid: run the program in a new session, so terminal signals aimed at us don't reach it.
+        var cmd = new List<string> { exe };
+        cmd.AddRange(parts.Skip(1));
+        if (limits is { Any: true })
+            cmd = BuildCommand(exe, parts.Skip(1), limits, ResolveExecutable("systemd-run", path));
+
+        // setsid: new session, so terminal signals aimed at us don't reach the program.
         var psi = new ProcessStartInfo("setsid")
         {
             UseShellExecute = false,
             WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
         };
-        psi.ArgumentList.Add(exe);
-        foreach (var arg in parts.Skip(1)) psi.ArgumentList.Add(arg);
+        foreach (var a in cmd) psi.ArgumentList.Add(a);
 
         try
         {
@@ -34,6 +45,23 @@ public static class ProcessLauncher
         {
             throw new IOException("'setsid' was not found on this system.");
         }
+    }
+
+    // Pure function: easy to test, and the one place that decides what reaches systemd-run.
+    public static List<string> BuildCommand(
+        string exe, IEnumerable<string> programArgs, ResourceLimits limits, string systemdRun)
+    {
+        if (limits.MemoryMb is < 1 || limits.CpuPercent is < 1)
+            throw new ArgumentException("Limits must be positive whole numbers.");
+
+        var cmd = new List<string> { systemdRun, "--user", "--scope", "--quiet" };
+        if (limits.MemoryMb is int mb) cmd.AddRange(new[] { "-p", $"MemoryMax={mb}M" });
+        if (limits.CpuPercent is int cpu) cmd.AddRange(new[] { "-p", $"CPUQuota={cpu}%" });
+
+        cmd.Add("--");       // everything after this is the program, never systemd-run options
+        cmd.Add(exe);
+        cmd.AddRange(programArgs);
+        return cmd;
     }
 
     public static string ResolveExecutable(string program, string? pathVar)

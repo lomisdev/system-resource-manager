@@ -257,7 +257,7 @@
                            FontSize="24"
                            FontWeight="Bold"
                            Margin="0,0,0,12"/>
-                <Grid Grid.Row="1" ColumnDefinitions="*,*,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+                <Grid Grid.Row="1" ColumnDefinitions="*,*,90,90,Auto" ColumnSpacing="8" Margin="0,0,0,12">
                     <TextBox Grid.Column="0" Text="{Binding SearchText}" PlaceholderText="Search by name or PID…"/>
                     <TextBox Grid.Column="1" Text="{Binding LaunchText}"
                              PlaceholderText="Run a program, e.g. sleep 300">
@@ -265,7 +265,9 @@
                             <KeyBinding Gesture="Enter" Command="{Binding LaunchCommand}"/>
                         </TextBox.KeyBindings>
                     </TextBox>
-                    <Button Grid.Column="2" Content="Start" Command="{Binding LaunchCommand}"/>
+                    <TextBox Grid.Column="2" Text="{Binding MemoryLimitMb}" PlaceholderText="Mem MB"/>
+                    <TextBox Grid.Column="3" Text="{Binding CpuLimitPercent}" PlaceholderText="CPU %"/>
+                    <Button Grid.Column="4" Content="Start" Command="{Binding LaunchCommand}"/>
                 </Grid>
 
                 <Grid Grid.Row="2" ColumnDefinitions="90,*,200,90" Margin="12,0,12,6">
