@@ -337,7 +337,7 @@
 
                     <TextBlock Grid.Row="0" Text="Files" FontSize="24" FontWeight="Bold" Margin="0,0,0,12"/>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+                    <Grid Grid.Row="1" IsVisible="{Binding !IsEditing}"  ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
                         <Button Grid.Column="0" Content="↑ Up" Command="{Binding UpCommand}"/>
                         <TextBlock Grid.Column="1" Text="{Binding CurrentDir}" Classes="label"
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
@@ -345,13 +345,13 @@
                         <Button Grid.Column="3" Content="Refresh" Command="{Binding RefreshCommand}"/>
                     </Grid>
 
-                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+                    <Grid Grid.Row="2" IsVisible="{Binding !IsEditing}"  ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
                         <TextBox Grid.Column="0" Text="{Binding NewName}" PlaceholderText="New file or folder name…"/>
                         <Button Grid.Column="1" Content="New file" Command="{Binding CreateFileCommand}"/>
                         <Button Grid.Column="2" Content="New folder" Command="{Binding CreateFolderCommand}"/>
                     </Grid>
 
-                    <ListBox Grid.Row="3" Background="#1F2029" CornerRadius="10"
+                    <ListBox Grid.Row="3" IsVisible="{Binding !IsEditing}" Background="#1F2029" CornerRadius="10"
                              ItemsSource="{Binding Entries}" SelectedItem="{Binding Selected}">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="svc:FileEntry">
@@ -364,7 +364,9 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+                    <StackPanel Grid.Row="4" IsVisible="{Binding !IsEditing}" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+                        <Button Content="Edit" Command="{Binding EditCommand}"
+                                IsVisible="{Binding !IsConfirmingDelete}"/>
                         <Button Content="Move to Trash" Command="{Binding TrashCommand}"
                                 IsVisible="{Binding !IsConfirmingDelete}"/>
                         <Button Content="Delete permanently…" Command="{Binding AskDeleteCommand}"
@@ -378,6 +380,34 @@
                         </StackPanel>
                         <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Foreground="#8A8FA3"/>
                     </StackPanel>
+
+                    <!-- EDITOR: spans the rows the list normally occupies -->
+                    <Grid Grid.Row="1" Grid.RowSpan="4" IsVisible="{Binding IsEditing}" RowDefinitions="Auto,*,Auto">
+                        <TextBlock Grid.Row="0" Text="{Binding EditorTitle}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                        <TextBox Grid.Row="1" Text="{Binding EditorText}"
+                                 AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"
+                                 FontFamily="JetBrains Mono, DejaVu Sans Mono, monospace"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <TextBox.KeyBindings>
+                                <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
+                            </TextBox.KeyBindings>
+                        </TextBox>
+
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+                            <Button Content="Save (Ctrl+S)" Command="{Binding SaveCommand}"/>
+                            <Button Content="Close" Command="{Binding CloseEditorCommand}"
+                                    IsVisible="{Binding !IsConfirmingDiscard}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsConfirmingDiscard}">
+                                <TextBlock Text="Discard unsaved changes?" VerticalAlignment="Center" Foreground="#E0AF68"/>
+                                <Button Content="Discard" Command="{Binding DiscardChangesCommand}"
+                                        Background="#A1260D" Foreground="White"/>
+                                <Button Content="Keep editing" Command="{Binding KeepEditingCommand}"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Foreground="#8A8FA3"/>
+                        </StackPanel>
+                    </Grid>
 
                 </Grid>
             </Grid>
