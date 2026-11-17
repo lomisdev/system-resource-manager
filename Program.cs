@@ -2,6 +2,7 @@
 using System;
 
 using System.Runtime.Versioning;
+using System_Resource_Manager.Services;
 
 [assembly: SupportedOSPlatform("linux")]
 
@@ -13,8 +14,13 @@ sealed class Program
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static int Main(string[] args)
+    {
+        if (args is ["--worker", var socketPath]) return WorkerHost.Run(socketPath);
+        if (args is ["--demo"]) return LabDemo.RunAsync().GetAwaiter().GetResult();
+
+        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()

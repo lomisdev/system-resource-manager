@@ -55,7 +55,11 @@ public static class ProcessLauncher
             throw new ArgumentException("Limits must be positive whole numbers.");
 
         var cmd = new List<string> { systemdRun, "--user", "--scope", "--quiet" };
-        if (limits.MemoryMb is int mb) cmd.AddRange(new[] { "-p", $"MemoryMax={mb}M" });
+        if (limits.MemoryMb is int mb)
+        {
+            cmd.AddRange(new[] { "-p", $"MemoryMax={mb}M" });
+            cmd.AddRange(new[] { "-p", "MemorySwapMax=0" });   // else zram swap absorbs the overage and nothing is killed
+        }
         if (limits.CpuPercent is int cpu) cmd.AddRange(new[] { "-p", $"CPUQuota={cpu}%" });
 
         cmd.Add("--");       // everything after this is the program, never systemd-run options

@@ -131,6 +131,16 @@
                             <TextBlock Grid.Column="1" Text="Files" VerticalAlignment="Center"/>
                         </Grid>
                     </Button>
+
+                    <Button Classes="nav" Classes.active="{Binding IsLabVisible}"
+                            Command="{Binding ShowLabCommand}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Path Classes="icon"
+                                  Stroke="{Binding $parent[ContentPresenter].Foreground}"
+                                  Data="M9,3 H15 M10,3 V9 L4,19 H20 L14,9 V3"/>
+                            <TextBlock Grid.Column="1" Text="Lab" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Button>
                 </StackPanel>
 
                 <!-- footer: live status -->
@@ -409,6 +419,65 @@
                         </StackPanel>
                     </Grid>
 
+                </Grid>
+            </Grid>
+
+            <!-- LAB PAGE -->
+            <Grid IsVisible="{Binding IsLabVisible}">
+                <Grid DataContext="{Binding Lab}" x:DataType="vm:LabViewModel"
+                      RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+                    <TextBlock Grid.Row="0" Text="Systems Lab" FontSize="24" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="8" Margin="0,0,0,12">
+                        <TextBox Grid.Column="0" Width="140" Text="{Binding LimitMb}" PlaceholderText="Limit MB (optional)"/>
+                        <Button Grid.Column="1" Content="Start worker" Command="{Binding StartWorkerCommand}"/>
+                        <Button Grid.Column="2" Content="Stop" Command="{Binding StopWorkerCommand}"/>
+                        <TextBlock Grid.Column="3" Text="{Binding Status}" VerticalAlignment="Center"
+                                   Foreground="#8A8FA3" TextTrimming="CharacterEllipsis"/>
+                    </Grid>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*,*">
+                        <Border Grid.Column="0" Classes="card">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="label" Text="VIRTUAL SIZE (change since start)"/>
+                                <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="#7AA2F7" Text="{Binding VirtualText}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Classes="card">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="label" Text="RESIDENT / RSS (change)"/>
+                                <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="#CE9178" Text="{Binding ResidentText}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Classes="card">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="label" Text="MINOR PAGE FAULTS (change)"/>
+                                <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="#4EC9B0" Text="{Binding FaultsText}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+                        <Button Content="Ping" Command="{Binding PingCommand}"/>
+                        <TextBox Width="80" Text="{Binding AllocMb}"/>
+                        <Button Content="Alloc MB" Command="{Binding AllocCommand}"/>
+                        <Button Content="Touch" Command="{Binding TouchCommand}"/>
+                        <Button Content="Free" Command="{Binding FreeCommand}"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="4" Classes="card" Margin="0">
+                        <ScrollViewer>
+                            <ItemsControl ItemsSource="{Binding Log}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <TextBlock Text="{Binding}" FontSize="12"
+                                                   FontFamily="JetBrains Mono, DejaVu Sans Mono, monospace"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
                 </Grid>
             </Grid>
 

@@ -10,6 +10,25 @@ namespace System_Resource_Manager.Services;
 
 public static class ProcFs
 {
+    public readonly record struct MemStats(long VmSizeKb, long VmRssKb, long MinorFaults, long MajorFaults);
+
+    public static MemStats ReadMemStats(int pid)
+    {
+        long size = 0, rss = 0;
+        foreach (var line in File.ReadLines($"/proc/{pid}/status"))
+        {
+            if (line.StartsWith("VmSize:")) size = ParseKb(line);
+            else if (line.StartsWith("VmRSS:")) rss = ParseKb(line);
+        }
+
+        // Same trick as before: split after the LAST ')' because the process name can contain anything.
+        var stat = File.ReadAllText($"/proc/{pid}/stat");
+        var f = stat[(stat.LastIndexOf(')') + 2)..].Split(' ');      // f[0] is field 3 (state)
+        return new MemStats(size, rss, long.Parse(f[7]), long.Parse(f[9]));   // fields 10 (minflt), 12 (majflt)
+    }
+
+    private static long ParseKb(string line) =>          // "VmRSS:     1234 kB"
+        long.Parse(line.Split(':')[1].Trim().Split(' ')[0]);
     private static readonly double PageMb = Environment.SystemPageSize / 1048576.0;
 
     public static SystemSnapshot ReadSnapshot()
@@ -79,4 +98,5 @@ public static class ProcFs
         }
         return result;
     }
+
 }

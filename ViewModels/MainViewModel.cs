@@ -21,15 +21,20 @@ namespace System_Resource_Manager.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     // --- navigation ---
-    public enum AppPage { Dashboard, Processes, Files }
+    public enum AppPage { Dashboard, Processes, Files, Lab }
+
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsDashboardVisible), nameof(IsProcessesVisible), nameof(IsFilesVisible))]
+    [NotifyPropertyChangedFor(nameof(IsDashboardVisible), nameof(IsProcessesVisible), nameof(IsFilesVisible), nameof(IsLabVisible))]
     private AppPage _currentPage = AppPage.Dashboard;
 
     public bool IsDashboardVisible => CurrentPage == AppPage.Dashboard;
     public bool IsProcessesVisible => CurrentPage == AppPage.Processes;
     public bool IsFilesVisible => CurrentPage == AppPage.Files;
+
+    public bool IsLabVisible => CurrentPage == AppPage.Lab;
+    public LabViewModel Lab { get; } = new();
+    [RelayCommand] private void ShowLab() => CurrentPage = AppPage.Lab;
 
     public FilesViewModel Files { get; } = new();
 
@@ -154,7 +159,7 @@ public partial class MainViewModel : ViewModelBase
         _ = MonitorAsync(_cts.Token);
     }
 
-    public void Stop() => _cts.Cancel();
+    public void Stop() { _cts.Cancel(); Lab.Shutdown(); }
 
     private async Task MonitorAsync(CancellationToken ct)
     {
